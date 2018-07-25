@@ -12,6 +12,7 @@ import (
 	"time"
 	"encoding/hex"
 	"crypto/rand"
+	"crypto/sha256"
 )
 
 var upgrader = websocket.Upgrader{
@@ -117,10 +118,11 @@ authLoop:
 	// Create the challenge nonce
 	nonce := make([]byte, 32)
 	rand.Read(nonce)
-	nonceHex := hex.EncodeToString(nonce)
+	nonceHash := sha256.Sum256(nonce)
+	nonceHashHex := hex.EncodeToString(nonceHash[:])
 
 	// Print it out for now to make it easy to debug
-	log.Println(nonceHex)
+	log.Println(nonceHashHex)
 
 	// Encrypt the nonce with the pubkey
 	enc, err := encryptCurve25519(pubKey, nonce)
@@ -177,7 +179,7 @@ challengeLoop:
 	}
 
 	// Make sure the nonce he sent us matches our nonce
-	if chalResp.Nonce != nonceHex {
+	if chalResp.Nonce != nonceHashHex {
 		c.WriteMessage(1, []byte(`{"auth": false}`))
 		log.Printf("invalid challenge from peer %s\n", pid.Pretty())
 		return
