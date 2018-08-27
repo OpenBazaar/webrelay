@@ -1,18 +1,23 @@
 package main
 
 import (
-	"github.com/OpenBazaar/openbazaar-go/mobile"
-	"net/http"
+	"encoding/json"
 	"github.com/gorilla/websocket"
 	"log"
-	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+	"net/http"
 	"sync"
-	"encoding/json"
-	"gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"time"
-	"encoding/hex"
-	"crypto/rand"
+	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
+	"errors"
+	"github.com/OpenBazaar/openbazaar-go/mobile"
+	"encoding/base64"
+	"context"
+	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	"crypto/sha256"
+	"encoding/hex"
+	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+	"github.com/OpenBazaar/openbazaar-go/ipfs"
+	"strings"
 )
 
 var upgrader = websocket.Upgrader{
@@ -21,19 +26,21 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-
 type RelayProtocol struct {
-	node *mobile.Node
-	connectedNodes map[peer.ID][]*websocket.Conn
-	lock sync.RWMutex
+	node           *mobile.Node
+	db             Datastore
+	connectedNodes map[string][]*websocket.Conn
+	lock           sync.RWMutex
 }
 
-func StartRelayProtocol(n *mobile.Node) (error) {
+func StartRelayProtocol(n *mobile.Node, db Datastore) error {
 	rp := &RelayProtocol{
-		node: n,
-		connectedNodes: make(map[peer.ID][]*websocket.Conn),
-		lock: sync.RWMutex{},
+		connectedNodes: make(map[string][]*websocket.Conn),
+		lock:           sync.RWMutex{},
+		db:             db,
+		node:           n,
 	}
+	go rp.handlePublishes()
 	http.HandleFunc("/", rp.handleNewConnection)
 	return http.ListenAndServe(":8080", nil)
 }
@@ -76,147 +83,184 @@ authLoop:
 	ticker.Stop()
 
 	// Unmarshall message
-	authReq := new(AuthRequest)
+	authReq := new(AuthMessage)
 	err = json.Unmarshal(authRequestMessage, authReq)
 	if err != nil {
 		c.WriteMessage(1, []byte(`{"error": "invalid auth message"}`))
 		log.Println("invalid auth message:", err)
 		return
 	}
+	if authReq.UserID == "" {
+		c.WriteMessage(1, []byte(`{"error": "userID required"}`))
+		log.Println("received auth message without userID")
+		return
+	}
 
-	// Decode the public key. Make sure it's properly formatted.
-	pubKeyBytes, err := hex.DecodeString(authReq.Pubkey)
+	// Decode the subscription key
+	subscriptionKey, err := mh.FromB58String(authReq.SubscriptionKey)
 	if err != nil {
-		c.WriteMessage(1, []byte(`{"error": "invalid pubkey"}`))
-		log.Println("invalid pubkey:", err)
-		return
-	}
-	pubKey, err := crypto.UnmarshalPublicKey(pubKeyBytes)
-	if err != nil {
-		c.WriteMessage(1, []byte(`{"error": "invalid pubkey"}`))
-		log.Println("invalid pubkey:", err)
+		c.WriteMessage(1, []byte(`{"error": "subscription key"}`))
+		log.Println("invalid subscription key:", err)
 		return
 	}
 
-	// Create a peerID object from the pubkey
-	pid, err := peer.IDFromPublicKey(pubKey)
-	if err != nil {
-		c.WriteMessage(1, []byte(`{"error": "invalid pubkey"}`))
-		log.Println("invalid pubkey:", err)
+	if err := rp.db.AddSubscription(subscriptionKey); err != nil {
+		c.WriteMessage(1, []byte(`{"error": "database error"}`))
+		log.Println("error saving subscriber to database:", err)
 		return
 	}
 
-	// Make sure the pubkey object matches the peerID they sent us
-	// The reason the peerID is even needed here is because we'll eventually
-	// have two peer ID types. We'll need to handle testing both ID types here.
-	if pid.Pretty() != authReq.PeerID {
-		c.WriteMessage(1, []byte(`{"error": "invalid peerID"}`))
-		log.Println("invalid peerID:", err)
-		return
-	}
-
-	// Create the challenge nonce
-	nonce := make([]byte, 32)
-	rand.Read(nonce)
-	nonceHash := sha256.Sum256(nonce)
-	nonceHashHex := hex.EncodeToString(nonceHash[:])
-
-	// Print it out for now to make it easy to debug
-	log.Println(nonceHashHex)
-
-	// Encrypt the nonce with the pubkey
-	enc, err := encryptCurve25519(pubKey, nonce)
-	if err != nil {
-		c.WriteMessage(1, []byte(`{"error": "encryption error"}`))
-		log.Println("encryption error:", err)
-		return
-	}
-
-	// Send the challenge
-	authResp := &AuthResponse{
-		Challenge: hex.EncodeToString(enc),
-	}
-	resp, err := json.MarshalIndent(authResp, "", "    ")
-	if err != nil {
-		c.WriteMessage(1, []byte(`{"error": "internal error"}`))
-		log.Println("json error:", err)
-		return
-	}
-	c.WriteMessage(1, resp)
-
-	// Wait for the challenge response. Again let's timeout after 30 seconds.
-	respChan := make(chan struct{})
-	var challengeResponseMessage []byte
-	go func() {
-		_, challengeResponseMessage, err = c.ReadMessage()
-		if err != nil {
-			log.Println("read:", err)
-			return
-		}
-		respChan <- struct{}{}
-	}()
-	ticker = time.NewTicker(time.Second * 30)
-challengeLoop:
-	for {
-		select {
-		case <-respChan:
-			break challengeLoop
-		case <-ticker.C:
-			ticker.Stop()
-			log.Printf("peer %s timed out during auth\n", pid.Pretty())
-			return
-		}
-	}
-	ticker.Stop()
-
-	// Unmarshal the response
-	chalResp := new(ChallengeResponse)
-	err = json.Unmarshal(challengeResponseMessage, chalResp)
-	if err != nil {
-		c.WriteMessage(1, []byte(`{"error": "invalid challenge response"}`))
-		log.Println("invalid challenge response:", err)
-		return
-	}
-
-	// Make sure the nonce he sent us matches our nonce
-	if chalResp.Nonce != nonceHashHex {
-		c.WriteMessage(1, []byte(`{"auth": false}`))
-		log.Printf("invalid challenge from peer %s\n", pid.Pretty())
+	if err := rp.subscribe(subscriptionKey); err != nil {
+		c.WriteMessage(1, []byte(`{"error": "subscribe error"}`))
+		log.Println("error subscribing to pubsub:", err)
 		return
 	}
 
 	rp.lock.Lock()
-	conns, _ := rp.connectedNodes[pid]
+	conns, _ := rp.connectedNodes[subscriptionKey.B58String()]
 	conns = append(conns, c)
-	rp.connectedNodes[pid] = conns
+	rp.connectedNodes[subscriptionKey.B58String()] = conns
 	rp.lock.Unlock()
 
-	defer func() {
+	defer func(wsConn *websocket.Conn) {
 		rp.lock.Lock()
-		_, ok := rp.connectedNodes[pid]
-		if ok {
-			delete(rp.connectedNodes, pid)
+		conns, ok := rp.connectedNodes[subscriptionKey.B58String()]
+		// If only one connection, remove it from map
+		if ok && len(conns) == 1 {
+			delete(rp.connectedNodes, subscriptionKey.B58String())
+		} else if ok { // Otherwise just delete the connection from the list
+			for i, conn := range conns {
+				if conn == wsConn {
+					conns[i] = conns[len(conns)-1]
+					conns = conns[:len(conns)-1]
+					rp.connectedNodes[subscriptionKey.B58String()] = conns
+					break
+				}
+			}
 		}
 		rp.lock.Unlock()
-	}()
+	}(c)
 
-	log.Printf("New connected peer %s\n", pid.Pretty())
+	log.Printf("New peer subscription: %s\n", subscriptionKey.B58String())
 	c.WriteMessage(1, []byte(`{"auth": true}`))
 
-	// TODO: load messages from db and send back to client
+	// Load messages for subscription key
+	messages, err := rp.db.GetMessages(authReq.UserID, subscriptionKey)
+	if err != nil {
+		log.Println("error fetching messages from database: ", err)
+	}
+	for _, message := range messages {
+		formatted, err :=  json.MarshalIndent(message, "", "    ")
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+		c.WriteMessage(1, formatted)
+	}
 
 	for {
-		// TODO: just echoing for now
-		mt, message, err := c.ReadMessage()
+		_, message, err := c.ReadMessage()
 		if err != nil {
 			log.Println("read:", err)
 			break
 		}
-		log.Printf("recv: %s", message)
-		err = c.WriteMessage(mt, message)
-		if err != nil {
-			log.Println("write:", err)
-			break
+		if err := rp.handleMessage(message, authReq.UserID); err != nil {
+			log.Println(err)
 		}
 	}
+}
+
+func (rp *RelayProtocol) handleMessage(m []byte, userID string) error {
+	message, err := unmarshalMessage(m)
+	if err != nil {
+		return err
+	}
+	switch message.(type) {
+	case EncryptedMessage:
+		em := message.(EncryptedMessage)
+		b, err := base64.StdEncoding.DecodeString(em.Message)
+		if err != nil {
+			return err
+		}
+		_, err = peer.IDB58Decode(em.Recipient)
+		if err != nil {
+			return nil
+		}
+		return rp.node.OpenBazaarNode.SendOfflineRelay(em.Recipient, b)
+	case AckMessage:
+		return rp.db.MarkMessageAsRead(message.(AckMessage).MessageID, userID)
+	}
+	return nil
+}
+
+func unmarshalMessage(m []byte) (interface{}, error) {
+	formatted := strings.Replace(string(m) , "\n", "", -1)
+	var encryptedMessage EncryptedMessage
+	if err := json.Unmarshal([]byte(formatted), &encryptedMessage); err == nil {
+		return encryptedMessage, nil
+	}
+	var ack AckMessage
+	if err := json.Unmarshal([]byte(formatted), &ack); err == nil {
+		return ack, nil
+	}
+	return nil, errors.New("unknown message type")
+}
+
+func (rp *RelayProtocol) handlePublishes() {
+	subs, err := rp.db.GetSubscriptions()
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, sub := range subs {
+		if err := rp.subscribe(sub); err != nil {
+			log.Println(err)
+		}
+	}
+}
+
+func (rp *RelayProtocol) subscribe(sub mh.Multihash) error {
+	k, err := cid.Decode(sub.B58String())
+	if err != nil {
+		return err
+	}
+
+	topic := ipfs.MessageTopicPrefix+k.String()
+
+	currentSubscriptions := rp.node.OpenBazaarNode.Pubsub.Subscriber.GetSubscriptions()
+	for _, s := range currentSubscriptions {
+		if s == topic { // already subscribed
+			return nil
+		}
+	}
+	c, err := rp.node.OpenBazaarNode.Pubsub.Subscriber.Subscribe(context.Background(), topic)
+	if err != nil {
+		return err
+	}
+	go func(subscriptionKey mh.Multihash, ch <-chan []byte) {
+		for {
+			data := <- ch
+			messageID := sha256.Sum256(data)
+			err := rp.db.PutMessage(subscriptionKey, hex.EncodeToString(messageID[:]), data)
+			if err != nil {
+				log.Println(err)
+			}
+			nodes, ok := rp.connectedNodes[subscriptionKey.B58String()]
+			if ok {
+				for _, node := range nodes {
+					messageID := sha256.Sum256(data)
+					em := EncryptedMessage{
+						ID: hex.EncodeToString(messageID[:]),
+						Message: base64.StdEncoding.EncodeToString(data),
+					}
+					out ,err := json.MarshalIndent(em, "", "    ")
+					if err != nil {
+						log.Println(err)
+						continue
+					}
+					node.WriteMessage(1, out)
+				}
+			}
+		}
+	}(sub, c)
+	return nil
 }

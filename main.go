@@ -7,10 +7,10 @@ import (
 
 func main() {
 	cfg := mobile.NodeConfig{
-		DisableWallet: true,
+		DisableWallet:        true,
 		DisableExchangerates: true,
-		RepoPath: "/tmp/webrelay",
-		UserAgent: "webrelay:1.0.0",
+		RepoPath:             "/tmp/webrelay",
+		UserAgent:            "webrelay:1.0.0",
 	}
 
 	node, err := mobile.NewNode(cfg)
@@ -18,5 +18,5 @@ func main() {
 		log.Fatal(err)
 	}
 	node.Start()
-	StartRelayProtocol(node)
+	StartRelayProtocol(node, NewMockDatastore())
 }

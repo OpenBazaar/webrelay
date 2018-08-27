@@ -1,14 +1,16 @@
 package main
 
-type AuthRequest struct {
-	PeerID string `json:"peerID"`
-	Pubkey string `json:"pubkey"`
+type AuthMessage struct {
+	UserID          string `json:"userID"`
+	SubscriptionKey string `json:"subscriptionKey"`
 }
 
-type AuthResponse struct {
-	Challenge string `json:"challenge"`
+type EncryptedMessage struct {
+	ID        string `json:"id"`
+	Message   string `json:"encryptedMessage"`
+	Recipient string `json:"recipient"`
 }
 
-type ChallengeResponse struct {
-	Nonce string `json:"nonce"`
+type AckMessage struct {
+	MessageID string `json:"messageID"`
 }

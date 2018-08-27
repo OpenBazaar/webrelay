@@ -1,10 +1,10 @@
 package main
 
 import (
-	"gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"crypto/rand"
-	"golang.org/x/crypto/nacl/box"
 	"errors"
+	"golang.org/x/crypto/nacl/box"
+	"gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
 func encryptCurve25519(pubKey crypto.PubKey, plaintext []byte) ([]byte, error) {
