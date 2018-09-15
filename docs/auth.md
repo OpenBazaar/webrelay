@@ -69,6 +69,11 @@ hashedShiftedPrefix := sha256.Sum256(shiftedBytes)
 SubcriptionKey, _ := multihash.Encode(hashedShiftedPrefix[:], multihash.SHA2_256)
 fmt.Println(SubcriptionKey.B58String()) // QmWqVgN2CtEgWgSXTfWHDoEhXXf26oZdfehPsCCWLZ4BB6
 ```
+Test Vector:
+```
+PeerID:          QmaSAmPPynrWfz1R8XvRm1GX6ghzPze6XSZCov6fWWUzSg
+SubscriptionKey: QmPZ9uGyBAJXjE7GXRHE9NG8CcuKei2z5PczmmuQnStaMu
+```
 
 You have 30 seconds to send the `AuthMessage` object after connecting before the relay will disconnect from you.
 
