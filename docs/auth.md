@@ -42,7 +42,7 @@ digest := decoded.Digest
 ```go
 prefix := digest[:8]
 ```
-4) Bit shift the prefix to they right by 48 places.
+4) Bit shift the prefix to the right by 48 places.
 ```go
 // If the prefix is:
 11111111 10101010 01010101 00001111 11110000 11001100 00110011 10110010
