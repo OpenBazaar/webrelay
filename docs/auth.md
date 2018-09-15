@@ -1,4 +1,4 @@
-Authenticating with the relay
+Authenticating with the relay server
 ===============================
 
 Authenticating with the relay server requires sending it an `AuthMessage` JSON object which looks like the following:
