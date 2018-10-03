@@ -72,7 +72,7 @@ fmt.Println(SubcriptionKey.B58String()) // QmWqVgN2CtEgWgSXTfWHDoEhXXf26oZdfehPs
 Test Vector:
 ```
 PeerID:          QmaSAmPPynrWfz1R8XvRm1GX6ghzPze6XSZCov6fWWUzSg
-SubscriptionKey: QmPZ9uGyBAJXjE7GXRHE9NG8CcuKei2z5PczmmuQnStaMu
+SubscriptionKey: QmaGLQjHHdeZ3wKtKqHS9etMwSUDnckHnAYS6eqvAgp2Hf
 ```
 
 You have 30 seconds to send the `AuthMessage` object after connecting before the relay will disconnect from you.
