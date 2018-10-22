@@ -1,5 +1,12 @@
 package main
 
+import "encoding/json"
+
+type TypedMessage struct{
+	Type string
+	Data json.RawMessage
+}
+
 type AuthMessage struct {
 	UserID          string `json:"userID"`
 	SubscriptionKey string `json:"subscriptionKey"`

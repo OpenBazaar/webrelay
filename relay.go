@@ -83,8 +83,16 @@ authLoop:
 	ticker.Stop()
 
 	// Unmarshall message
+	incomingMessage := new(TypedMessage)
+	err = json.Unmarshal(authRequestMessage, incomingMessage)
+	if err != nil {
+		c.WriteMessage(1, []byte(`{"error": "invalid incoming message"}`))
+		log.Println("invalid incoming message:", err)
+		return
+	}
+
 	authReq := new(AuthMessage)
-	err = json.Unmarshal(authRequestMessage, authReq)
+	err = json.Unmarshal(incomingMessage.Data, authReq)
 	if err != nil {
 		c.WriteMessage(1, []byte(`{"error": "invalid auth message"}`))
 		log.Println("invalid auth message:", err)
@@ -171,12 +179,19 @@ authLoop:
 }
 
 func (rp *RelayProtocol) handleMessage(m []byte, userID string) error {
-	message, err := unmarshalMessage(m)
+	incomingMessage := new(TypedMessage)
+	err := json.Unmarshal(m, incomingMessage)
+	if err != nil {
+		log.Println("invalid incoming message:", err)
+		return err
+	}
+
+	message, err := unmarshalMessage(incomingMessage.Data)
 	if err != nil {
 		return err
 	}
-	switch message.(type) {
-	case EncryptedMessage:
+	switch incomingMessage.Type {
+	case "EncryptedMessage":
 		em := message.(EncryptedMessage)
 		b, err := base64.StdEncoding.DecodeString(em.Message)
 		if err != nil {
@@ -187,7 +202,7 @@ func (rp *RelayProtocol) handleMessage(m []byte, userID string) error {
 			return nil
 		}
 		return rp.node.OpenBazaarNode.SendOfflineRelay(em.Recipient, b)
-	case AckMessage:
+	case "AckMessage":
 		return rp.db.MarkMessageAsRead(message.(AckMessage).MessageID, userID)
 	}
 	return nil
