@@ -2,7 +2,7 @@ Sending messages via the relay server
 =========================
 This document explains how to send messages via the webrelay to a recipient on the OpenBazaar network.
 
-Before begining you will need to compile https://github.com/OpenBazaar/openbazaar-go/blob/master/pb/protos/message.proto to javascript.
+Before beginning you will need to compile https://github.com/OpenBazaar/openbazaar-go/blob/master/pb/protos/message.proto to javascript.
 
 The following are the steps needed to send a message:
 
