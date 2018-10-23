@@ -186,7 +186,7 @@ func (rp *RelayProtocol) handleMessage(m []byte, userID string) error {
 		return err
 	}
 
-	message, err := unmarshalMessage(incomingMessage.Data)
+	message, err := unmarshalMessage(incomingMessage)
 	if err != nil {
 		return err
 	}
@@ -208,16 +208,22 @@ func (rp *RelayProtocol) handleMessage(m []byte, userID string) error {
 	return nil
 }
 
-func unmarshalMessage(m []byte) (interface{}, error) {
-	formatted := strings.Replace(string(m) , "\n", "", -1)
-	var encryptedMessage EncryptedMessage
-	if err := json.Unmarshal([]byte(formatted), &encryptedMessage); err == nil {
-		return encryptedMessage, nil
+func unmarshalMessage(message TypedMessage) (interface{}, error) {
+	formatted := strings.Replace(string(message.Data) , "\n", "", -1)
+
+	switch message.Type {
+	case "EncryptedMessage":
+		var encryptedMessage EncryptedMessage
+		if err := json.Unmarshal([]byte(formatted), &encryptedMessage); err == nil {
+			return encryptedMessage, nil
+		}
+	case "AckMessage":
+		var ack AckMessage
+		if err := json.Unmarshal([]byte(formatted), &ack); err == nil {
+			return ack, nil
+		}
 	}
-	var ack AckMessage
-	if err := json.Unmarshal([]byte(formatted), &ack); err == nil {
-		return ack, nil
-	}
+	
 	return nil, errors.New("unknown message type")
 }
 
