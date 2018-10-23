@@ -7,7 +7,7 @@ type TypedMessage struct{
 	Data json.RawMessage
 }
 
-type AuthMessage struct {
+type SubscribeMessage struct {
 	UserID          string `json:"userID"`
 	SubscriptionKey string `json:"subscriptionKey"`
 }
