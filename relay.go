@@ -208,7 +208,7 @@ func (rp *RelayProtocol) handleMessage(m []byte, userID string) error {
 	return nil
 }
 
-func unmarshalMessage(message TypedMessage) (interface{}, error) {
+func unmarshalMessage(message *TypedMessage) (interface{}, error) {
 	formatted := strings.Replace(string(message.Data) , "\n", "", -1)
 
 	switch message.Type {
@@ -223,7 +223,7 @@ func unmarshalMessage(message TypedMessage) (interface{}, error) {
 			return ack, nil
 		}
 	}
-	
+
 	return nil, errors.New("unknown message type")
 }
 
