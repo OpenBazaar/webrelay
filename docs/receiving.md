@@ -13,7 +13,7 @@ type EncryptedMessage struct {
 }
 ```
 
-To ack the message you send back a TypedMessage with an AckMessage embedded in the Data field. The MessageID field must be the id that is sent by the websocket outside of the encryptedMessage content:
+To ack the message you send back a `TypedMessage` of type `AckMessage` with an `AckMessage` embedded in the Data field. The MessageID field must be the id that is sent by the websocket outside of the encryptedMessage content:
 
 ```go
 type TypedMessage struct{
