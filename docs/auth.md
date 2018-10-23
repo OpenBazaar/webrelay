@@ -81,3 +81,43 @@ Once authenticated the webrelay will return:
 ```json
 {"auth": true}
 ```
+
+
+Example Code:
+
+```Go
+package main
+
+import (
+	"crypto/sha256"
+	"encoding/binary"
+	"fmt"
+	b58 "github.com/mr-tron/base58/base58"
+	"github.com/multiformats/go-multihash"
+)
+
+func main() {
+
+    peerIDMultihash, _ := multihash.FromB58String("QmaSAmPPynrWfz1R8XvRm1GX6ghzPze6XSZCov6fWWUzSg")
+
+    decoded, _ := multihash.Decode(peerIDMultihash)
+    digest := decoded.Digest
+    prefix := digest[:8]
+    
+    prefix64 := binary.BigEndian.Uint64(prefix)
+
+    // Then shifting
+    shiftedPrefix64 := prefix64>>uint(48)
+
+    // Then converting back to a byte array
+    shiftedBytes := make([]byte, 8)
+    binary.BigEndian.PutUint64(shiftedBytes, shiftedPrefix64)
+
+    hashedShiftedPrefix := sha256.Sum256(shiftedBytes)
+
+    SubscriptionKey, _ := multihash.Encode(hashedShiftedPrefix[:], multihash.SHA2_256)
+
+    fmt.Println(b58.Encode([]byte(SubscriptionKey))) //QmaGLQjHHdeZ3wKtKqHS9etMwSUDnckHnAYS6eqvAgp2Hf
+
+}
+```
