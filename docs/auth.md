@@ -1,7 +1,14 @@
 Authenticating with the relay server
 ===============================
 
-Authenticating with the relay server requires sending it an `AuthMessage` JSON object which looks like the following:
+Authenticating with the relay server requires sending it an `AuthMessage` JSON object embedded in a `TypedMessage` which looks like the following:
+
+```Go
+type TypedMessage struct{
+	Type string
+	Data json.RawMessage
+}
+```
 
 ```Go
 type AuthMessage struct {
