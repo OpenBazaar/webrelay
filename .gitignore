@@ -43,3 +43,6 @@ openbazaar-go*
 
 # macOS
 .DS_Store
+
+# JS Dependency directories
+**/node_modules/
