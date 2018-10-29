@@ -1,6 +1,5 @@
 Subscribing to a topic on the relay server
 ===============================
-
 Subscribing on the relay server requires sending it an `SubscribeMessage` JSON object which looks like the following:
 
 ```Go
