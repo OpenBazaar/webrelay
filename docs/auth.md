@@ -1,17 +1,9 @@
-Authenticating with the relay server
+Subscribing to a topic on the relay server
 ===============================
-
-Authenticating with the relay server requires sending it an `AuthMessage` JSON object embedded in a `TypedMessage` of type `AuthMessage` which looks like the following:
-
-```Go
-type TypedMessage struct{
-	Type string
-	Data json.RawMessage
-}
-```
+Subscribing on the relay server requires sending it an `SubscribeMessage` JSON object which looks like the following:
 
 ```Go
-type AuthMessage struct {
+type SubscribeMessage struct {
 	UserID          string `json:"userID"`
 	SubscriptionKey string `json:"subscriptionKey"`
 }
@@ -19,7 +11,7 @@ type AuthMessage struct {
 
 `UserID` must be a string that is unique for each client. The UserID is used by the relay server to track which clients have
 acked a message. For example if client with UserID `ABC` has acked message with ID `123` then the relay server will no longer
-return `123` to the client when it connects. For this reason each UserID must be unquie for each user, long enough and random
+return `123` to the client when it connects. For this reason each UserID must be unique for each user, long enough and random
 enough such that it does not collide with any other user's ID, and must remain the same for each user across sessions. For these
 reasons it's suggested that you derive the UserID deterministically from the user seed. For example, `PBKDF2(seed)`.
 
@@ -31,7 +23,7 @@ a user will share a prefix with another user. This means that when downloading o
 intended for another user. The way we rectify this is by attempting decryption. If the message decrypts, it's for you. If it doesn't
 it's not for you. 
 
-The `SubscriptionKey` is the key that is derived from the PeerID prefix that the message is actually addressed to. The webrely will index
+The `SubscriptionKey` is the key that is derived from the PeerID prefix that the message is actually addressed to. The webrelay will index
 all messages by subscription key. So to get your messages from the server it needs to know what SubscriptionKey you're interested it.
 
 The process of deriving the subscription key from the PeerID is relatively simple:
@@ -82,11 +74,11 @@ PeerID:          QmaSAmPPynrWfz1R8XvRm1GX6ghzPze6XSZCov6fWWUzSg
 SubscriptionKey: QmaGLQjHHdeZ3wKtKqHS9etMwSUDnckHnAYS6eqvAgp2Hf
 ```
 
-You have 30 seconds to send the `AuthMessage` object after connecting before the relay will disconnect from you.
+You have 30 seconds to send the `SubscribeMessage` object after connecting before the relay will disconnect from you.
 
-Once authenticated the webrelay will return:
+Once subscribed the webrelay will return:
 ```json
-{"auth": true}
+{"subscribe": true}
 ```
 
 
