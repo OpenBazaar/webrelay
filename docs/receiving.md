@@ -1,6 +1,6 @@
 Receiving messages from the relay server
 ===============================
-Immediately after authenticating with the web relay server it will send the client all outstanding messages that the client has
+Immediately after subscribing to the web relay server it will send the client all outstanding messages that the client has
 not acked. Further, whenever the relay server receives a new message from the OpenBazaar network addressed to the client's subscription key
 it will forward it to the client over the socket. 
 

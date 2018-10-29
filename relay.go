@@ -45,7 +45,7 @@ func StartRelayProtocol(n *mobile.Node, db Datastore) error {
 	return http.ListenAndServe(":8080", nil)
 }
 
-// Run authentication protocol
+// Run subscription protocol
 func (rp *RelayProtocol) handleNewConnection(w http.ResponseWriter, r *http.Request) {
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -54,26 +54,26 @@ func (rp *RelayProtocol) handleNewConnection(w http.ResponseWriter, r *http.Requ
 	}
 	defer c.Close()
 
-	// The first message should be an AuthRequest message
+	// The first message should be an SubscribeMessage message
 	// We'll set up a timer, if we don't get one within 30
 	// seconds we'll disconnect from this client.
-	authChan := make(chan struct{})
-	var authRequestMessage []byte
+	subChan := make(chan struct{})
+	var subscribeMessage []byte
 	go func() {
-		_, authRequestMessage, err = c.ReadMessage()
+		_, subscribeMessage, err = c.ReadMessage()
 		if err != nil {
 			log.Println("read:", err)
 			return
 		}
-		authChan <- struct{}{}
+		subChan <- struct{}{}
 	}()
 
 	ticker := time.NewTicker(time.Second * 30)
-authLoop:
+subscribeLoop:
 	for {
 		select {
-		case <-authChan:
-			break authLoop
+		case <-subChan:
+			break subscribeLoop
 		case <-ticker.C:
 			ticker.Stop()
 			log.Println("peer timed out on connection")
@@ -84,28 +84,28 @@ authLoop:
 
 	// Unmarshall message
 	incomingMessage := new(TypedMessage)
-	err = json.Unmarshal(authRequestMessage, incomingMessage)
+	err = json.Unmarshal(subscribeMessage, incomingMessage)
 	if err != nil {
 		c.WriteMessage(1, []byte(`{"error": "invalid incoming message"}`))
 		log.Println("invalid incoming message:", err)
 		return
 	}
 
-	authReq := new(AuthMessage)
-	err = json.Unmarshal(incomingMessage.Data, authReq)
+	subscription := new(SubscribeMessage)
+	err = json.Unmarshal(incomingMessage.Data, subscription)
 	if err != nil {
-		c.WriteMessage(1, []byte(`{"error": "invalid auth message"}`))
-		log.Println("invalid auth message:", err)
+		c.WriteMessage(1, []byte(`{"error": "invalid subscribe message"}`))
+		log.Println("invalid subscribe message:", err)
 		return
 	}
-	if authReq.UserID == "" {
+	if subscription.UserID == "" {
 		c.WriteMessage(1, []byte(`{"error": "userID required"}`))
-		log.Println("received auth message without userID")
+		log.Println("received subscribe message without userID")
 		return
 	}
 
 	// Decode the subscription key
-	subscriptionKey, err := mh.FromB58String(authReq.SubscriptionKey)
+	subscriptionKey, err := mh.FromB58String(subscription.SubscriptionKey)
 	if err != nil {
 		c.WriteMessage(1, []byte(`{"error": "subscription key"}`))
 		log.Println("invalid subscription key:", err)
@@ -150,10 +150,10 @@ authLoop:
 	}(c)
 
 	log.Printf("New peer subscription: %s\n", subscriptionKey.B58String())
-	c.WriteMessage(1, []byte(`{"auth": true}`))
+	c.WriteMessage(1, []byte(`{"subscribe": true}`))
 
 	// Load messages for subscription key
-	messages, err := rp.db.GetMessages(authReq.UserID, subscriptionKey)
+	messages, err := rp.db.GetMessages(subscription.UserID, subscriptionKey)
 	if err != nil {
 		log.Println("error fetching messages from database: ", err)
 	}
@@ -172,7 +172,7 @@ authLoop:
 			log.Println("read:", err)
 			break
 		}
-		if err := rp.handleMessage(message, authReq.UserID); err != nil {
+		if err := rp.handleMessage(message, subscription.UserID); err != nil {
 			log.Println(err)
 		}
 	}
