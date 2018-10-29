@@ -13,12 +13,21 @@ type EncryptedMessage struct {
 }
 ```
 
-To ack the message you send back:
+To ack the message you send back a `TypedMessage` of type `AckMessage` with an `AckMessage` embedded in the Data field. The MessageID field must be the id that is sent by the websocket outside of the encryptedMessage content:
+
+```go
+type TypedMessage struct{
+	Type string
+	Data json.RawMessage
+}
+```
+
 ```go
 type AckMessage struct {
 	MessageID string `json:"messageID"`
 }
 ```
+
 TODO: make the field name more descriptive
 
 The encrypted message is base64 encoded ciphertext. NOTE that due to the way we calculate the subscription key from the prefix of the peerID, multiple users
