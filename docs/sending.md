@@ -172,7 +172,14 @@ The following is an example of creating a a chat message in Go:
   encodedCipherText := base64.StdEncoding.EncodeToString(ciphertext)
   ```
   
-  3. Create a `EncryptedMessage` JSON object to send to the webrelay server
+  3. Create a `EncryptedMessage` JSON object to send to the webrelay server and embed it in a `TypedMessage` of type `EncryptedMessage` before sending:
+  ```go
+  type TypedMessage struct{
+	Type string
+	Data json.RawMessage
+  }
+  ```
+  
   ```go
   type EncryptedMessage struct {
     Message   string `json:"encryptedMessage"`
