@@ -245,7 +245,7 @@ func (rp *RelayProtocol) subscribe(sub mh.Multihash) error {
 		return err
 	}
 
-	topic := ipfs.MessageTopicPrefix+k.String()
+	topic := "/offlinemessage/"+k.String()
 
 	currentSubscriptions := rp.node.OpenBazaarNode.Pubsub.Subscriber.GetSubscriptions()
 	for _, s := range currentSubscriptions {
