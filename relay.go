@@ -1,23 +1,25 @@
 package main
 
 import (
+	"context"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
-	"github.com/gorilla/websocket"
-	"log"
-	"net/http"
-	"sync"
-	"time"
-	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	"errors"
 	"github.com/OpenBazaar/openbazaar-go/mobile"
-	"encoding/base64"
-	"context"
-	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	"crypto/sha256"
-	"encoding/hex"
+	"github.com/btcsuite/btcutil/base58"
+	"github.com/gorilla/websocket"
+	"github.com/multiformats/go-multihash"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	"github.com/OpenBazaar/openbazaar-go/ipfs"
+	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
+	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	"log"
+	"net/http"
 	"strings"
+	"sync"
+	"time"
 )
 
 var upgrader = websocket.Upgrader{
@@ -42,7 +44,9 @@ func StartRelayProtocol(n *mobile.Node, db Datastore) error {
 	}
 	go rp.handlePublishes()
 	http.HandleFunc("/", rp.handleNewConnection)
+	// Non-https default listener
 	return http.ListenAndServe(":8080", nil)
+	//return http.ListenAndServeTLS(":8080", "/etc/letsencrypt/live/webchat.ob1.io/fullchain.pem", "/etc/letsencrypt/live/webchat.ob1.io/privkey.pem", nil)
 }
 
 // Run subscription protocol
@@ -178,6 +182,28 @@ subscribeLoop:
 	}
 }
 
+func getSubscriptionKeyFromPeerID(peerID string) []byte {
+	// Generate subscription key for web relay
+	peerIDMultihash, _ := multihash.FromB58String(peerID)
+	decoded, _ := multihash.Decode(peerIDMultihash)
+	digest := decoded.Digest
+	prefix := digest[:8]
+
+	prefix64 := binary.BigEndian.Uint64(prefix)
+
+	// Then shifting
+	shiftedPrefix64 := prefix64 >> uint(48)
+
+	// Then converting back to a byte array
+	shiftedBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(shiftedBytes, shiftedPrefix64)
+
+	hashedShiftedPrefix := sha256.Sum256(shiftedBytes)
+
+	subscriptionKey, _ := multihash.Encode(hashedShiftedPrefix[:], multihash.SHA2_256)
+	return subscriptionKey
+}
+
 func (rp *RelayProtocol) handleMessage(m []byte, userID string) error {
 	incomingMessage := new(TypedMessage)
 	err := json.Unmarshal(m, incomingMessage)
@@ -195,12 +221,29 @@ func (rp *RelayProtocol) handleMessage(m []byte, userID string) error {
 		em := message.(EncryptedMessage)
 		b, err := base64.StdEncoding.DecodeString(em.Message)
 		if err != nil {
+			log.Println("error", err.Error())
 			return err
 		}
-		_, err = peer.IDB58Decode(em.Recipient)
+
+		recipient, err := peer.IDB58Decode(em.Recipient)
 		if err != nil {
 			return nil
 		}
+
+		subscriptionKey := getSubscriptionKeyFromPeerID(recipient.Pretty())
+		log.Printf("Subscription Key: %s", base58.Encode(subscriptionKey))
+		
+		// Send to user over websocket connection
+		conns := rp.connectedNodes[base58.Encode(subscriptionKey)]
+		for _, conn := range conns {
+			log.Printf("Writing message to websocket connection")
+			conn.WriteMessage(1, b)
+		}
+
+		if len(conns) == 0 {
+			log.Printf("No connected nodes found to send socket message to: %v", rp.connectedNodes)
+		}
+
 		return rp.node.OpenBazaarNode.SendOfflineRelay(em.Recipient, b)
 	case "AckMessage":
 		return rp.db.MarkMessageAsRead(message.(AckMessage).MessageID, userID)
@@ -279,7 +322,7 @@ func (rp *RelayProtocol) subscribe(sub mh.Multihash) error {
 						continue
 					}
 					node.WriteMessage(1, out)
-				}
+				}	
 			}
 		}
 	}(sub, c)

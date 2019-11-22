@@ -12,8 +12,8 @@ func main() {
 		RepoPath:             "/tmp/webrelay",
 		UserAgent:            "webrelay:1.0.0",
 	}
-
-	node, err := mobile.NewNode(cfg)
+        node, err := mobile.NewNodeWithConfig(&cfg, "", "")
+	//	node, err := mobile.NewNode(cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
