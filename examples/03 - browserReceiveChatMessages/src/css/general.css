@@ -1,0 +1,110 @@
+@import url('https://fonts.googleapis.com/css?family=Montserrat');
+
+body {
+    background: linear-gradient(45deg, #2b5dd0 0%, #0f9bea 100%);
+    font-family: 'Montserrat', sans-serif;
+    color: #4d4d4d;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+#secondSubscriptionStep {
+    display: none;
+}
+
+
+.genericInternalPageContainer {
+    min-height: 785px;
+    margin-top: 40px;
+    width: 700px;
+    position: relative;
+    left: Calc(50% - 400px);
+    border-radius: 5px;
+    padding: 50px;
+    background: rgba(255, 255, 255, 0.8588235294117647);
+    box-shadow: 0px 2px 5px 2px #2866d4;
+    margin-bottom: 30px;
+}
+
+.secondaryButton {
+    position: relative;
+    color: #fff;
+    display: inline-block;
+    border-radius: 5px;
+    padding: 7px 10px;
+    text-decoration: none;
+    outline: 0;
+    width: 100px;
+    text-align: center;
+    cursor: pointer;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    background: linear-gradient(45deg, #4462d4 0%, #8d68ff 100%);
+    box-shadow: 0px 1px 4px 1px #7766f2;
+    margin-top: 10px;
+}
+
+.secondaryButton:active {
+    position: relative;
+    top: 1px;
+}
+
+.secondaryButton:hover {
+    -moz-box-shadow: 0px 1px 4px 1px #000;
+    -webkit-box-shadow: 0px 1px 4px 1px #000;
+    color: #F3FFFD;
+    transition: all 300ms;
+    opacity: 1;
+    background: linear-gradient(45deg, #3a53af 0%, #795bd9 100%);
+    box-shadow: 0px 1px 4px 1px #6658d0;
+}
+
+
+.genericLoaderContainer {
+    height: 75px;
+    width: 75px;
+    animation: spin 1s infinite linear;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 11px;
+}
+
+.genericLoader {
+    stroke-dasharray: 90, 150;
+    stroke-dashoffset: 0;
+    stroke-width: 2;
+    stroke: #409eff;
+    stroke-linecap: round;
+}
+
+.errorMessageContainer {
+    background: linear-gradient(45deg, #e36d3f 0%, #fe508d 100%);
+    box-shadow: 1px 1px 3px 1px #e35c46;
+    color: #f8f8f8;
+    border: none;
+    padding: 19px;
+    margin-top: 20px;
+    border-radius: 5px;
+}
+
+.successMessageContainer {
+    background: linear-gradient(45deg, #43b6db 0%, #3badf7 100%);
+    box-shadow: 0px 2px 5px 0px #03a9f4;
+    color: #f8f8f8;
+    border: none;
+    padding: 19px;
+    margin-top: 20px;
+    border-radius: 5px;
+}

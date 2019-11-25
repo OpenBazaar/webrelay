@@ -6,14 +6,12 @@ import (
 )
 
 func main() {
-	cfg := mobile.NodeConfig{
+	node, err := mobile.NewNodeWithConfig(&mobile.NodeConfig{
 		DisableWallet:        true,
 		DisableExchangerates: true,
 		RepoPath:             "/tmp/webrelay",
 		UserAgent:            "webrelay:1.0.0",
-	}
-
-	node, err := mobile.NewNode(cfg)
+	}, "", "")
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -1,0 +1,33 @@
+<html>
+
+<head>
+    <script src="build/bundle.js"></script>
+    <link rel="stylesheet" type="text/css" href="src/css/general.css">
+</head>
+
+<body>
+    <div class="genericInternalPageContainer">
+        <h1> Webrelay Subscription Example </h1>
+        <div id="firstSubscriptionStep">
+            <div style="margin-bottom: 5px;">Peer ID </div>
+            <input style="padding: 9px 14px 9px 14px; border: 1px solid #c8cad5; border-radius: 4px; width: 100%;" id="userPeerID" disabled/>
+            <div style="margin-top: 10px;">
+                <div style="margin-bottom: 5px;">Webrelay Host </div>
+                <input style="padding: 9px 14px 9px 14px; border: 1px solid #c8cad5; border-radius: 4px; background: rgba(255, 255, 255, 0.83); width: 100%;" value="ws://localhost:8080" id="webrelayHost" />
+            </div>
+            <div class="secondaryButton" id="subscribeButton" style="margin-top: 15px"> Subscribe </div>
+        </div>
+        <div id="loadingStep" style="display: none; position: absolute; top: Calc(50% - 80px); left: Calc(50% - 60px);">
+            <span style="font-size: 20px;">Connecting </span>
+            <svg viewBox="25 25 50 50" class="genericLoaderContainer">
+                <circle cx="50" cy="50" r="20" fill="none" class="genericLoader"></circle>
+            </svg>
+        </div>
+        <div id="secondSubscriptionStep">
+            <div id="serverResponseMessage"></div>
+            <div class="secondaryButton" id="tryAgainButton"> Try again </div> 
+        </div>
+    </div>
+</body>
+
+</html>

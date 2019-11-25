@@ -1,0 +1,25 @@
+{
+  "name": "webrelay",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "browserify src/js/index.js -o build/bundle.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "base64-js": "^1.3.0",
+    "bip39": "^2.5.0",
+    "browserify": "^16.2.0",
+    "ed2curve": "^0.2.1",
+    "google-protobuf": "^3.6.1",
+    "js-sha256": "^0.9.0",
+    "libp2p-crypto": "^0.14.1",
+    "long": "^4.0.0",
+    "multihashes": "^0.4.14",
+    "peer-id": "^0.12.0",
+    "tweetnacl": "^1.0.0",
+    "tweetnacl-util": "^0.15.0"
+  }
+}

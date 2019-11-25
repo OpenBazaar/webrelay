@@ -1,0 +1,55 @@
+<html>
+
+<head>
+    <script src="build/bundle.js"></script>
+    <link rel="stylesheet" type="text/css" href="src/css/general.css">
+</head>
+
+<body>
+    <div class="genericInternalPageContainer">
+        <h1> Webrelay Send Chat Message Example </h1>
+        <div id="firstSubscriptionStep">
+            <div>
+                <div style="margin-bottom: 5px;">Mnemonic Seed </div>
+                <input style="padding: 9px 14px 9px 14px; border: 1px solid #c8cad5; border-radius: 4px; width: 100%;" id="userMnemonicSeed" disabled/>
+            </div>
+            <div style="margin-top: 10px;">
+                <div style="margin-bottom: 5px;">Peer ID </div>
+                <input style="padding: 9px 14px 9px 14px; border: 1px solid #c8cad5; border-radius: 4px; width: 100%;" id="userPeerID" disabled/>
+            </div>
+            <div style="margin-top: 10px;">
+                <div style="margin-bottom: 5px;">Webrelay Host </div>
+                <input style="padding: 9px 14px 9px 14px; border: 1px solid #c8cad5; border-radius: 4px; background: rgba(255, 255, 255, 0.83); width: 100%;" value="ws://localhost:8080" id="webrelayHost" />
+            </div>
+            <div class="secondaryButton" id="subscribeButton" style="margin-top: 10px"> Subscribe </div>
+        </div>
+        <div id="loadingStep" style="display: none; position: absolute; top: Calc(50% - 80px); left: Calc(50% - 60px);">
+            <span style="font-size: 20px;">Connecting </span>
+            <svg viewBox="25 25 50 50" class="genericLoaderContainer">
+                <circle cx="50" cy="50" r="20" fill="none" class="genericLoader"></circle>
+            </svg>
+        </div>
+        <div id="secondSubscriptionStep">
+            <div>
+                <div style="margin-bottom: 5px;">Recipient Peer ID </div>
+                <input style="padding: 9px 14px 9px 14px; border: 1px solid #c8cad5; border-radius: 4px; background: rgba(255, 255, 255, 0.83); width: 100%;" placeholder="Enter your Recipient's Peer ID" id="recipientPeerID" />
+            </div>
+            <div style="margin-top: 10px;">
+                <div style="margin-bottom: 5px;">Message </div>
+                <input style="padding: 9px 14px 9px 14px; border: 1px solid #c8cad5; border-radius: 4px; background: rgba(255, 255, 255, 0.83); width: 100%;" placeholder="Enter your message to send to your recipient" id="chatMessage" />
+            </div>
+            <div class="secondaryButton" id="sendMessageButton"> Send
+                <svg viewBox="25 25 50 50" class="genericLoaderContainer" id="sendMessageLoader" style="display: none; position: absolute; bottom: 4px; right: 10px; height: 24px; width: 24px;">
+                    <circle cx="50" cy="50" r="20" fill="none" class="genericLoader" style="stroke: #fff;"></circle>
+                </svg>
+            </div>
+            <div id="sendMessageResponse"> </div>
+        </div>
+        <div id="errorOccurred" style="display: none;">
+            <div id="serverResponseMessage"></div>
+            <div class="secondaryButton" id="tryAgainButton"> Try again </div>
+        </div>
+    </div>
+</body>
+
+</html>
